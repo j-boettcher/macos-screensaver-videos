@@ -1,0 +1,66 @@
+name: Release
+
+# Erstellt bei jedem Versions-Tag (z. B. v1.4) einen GitHub-Release mit dem fertigen .saver.
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Version prüfen
+        id: version
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          VERSION="${TAG#v}"
+          PLIST_VERSION="$(plutil -extract CFBundleShortVersionString raw Resources/Info.plist)"
+          if [[ "$VERSION" != "$PLIST_VERSION" ]]; then
+            echo "::error::Tag $TAG passt nicht zu CFBundleShortVersionString ($PLIST_VERSION) in Resources/Info.plist"
+            exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Bauen
+        run: |
+          swift --version
+          ./build.sh
+
+      - name: Paketieren
+        id: package
+        run: |
+          ZIP="BC-Video-${{ steps.version.outputs.version }}.zip"
+          # ditto erhält Bundle-Struktur, Signatur und erweiterte Attribute
+          ditto -c -k --sequesterRsrc --keepParent "build/BC Video.saver" "$ZIP"
+          shasum -a 256 "$ZIP" > "$ZIP.sha256"
+          echo "zip=$ZIP" >> "$GITHUB_OUTPUT"
+
+      - name: Release erstellen
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cat > notes.md <<'EOF'
+          ## Installation
+
+          1. `BC-Video-*.zip` herunterladen und entpacken.
+          2. Da der Bildschirmschoner nicht notarisiert ist, die Quarantäne-Markierung entfernen:
+             ```bash
+             xattr -dr com.apple.quarantine "BC Video.saver"
+             ```
+          3. `BC Video.saver` doppelklicken (oder nach `~/Library/Screen Savers/` kopieren).
+          4. Systemeinstellungen → Hintergrundbild → Bildschirmschoner → „BC Video“ auswählen.
+
+          EOF
+          gh release create "$GITHUB_REF_NAME" \
+            "${{ steps.package.outputs.zip }}" \
+            "${{ steps.package.outputs.zip }}.sha256" \
+            --title "BC Video ${{ steps.version.outputs.version }}" \
+            --notes-file notes.md \
+            --generate-notes \
+            --verify-tag

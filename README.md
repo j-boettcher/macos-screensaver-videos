@@ -17,6 +17,15 @@ Ein Bildschirmschoner (`.saver`) für macOS 14 und neuer (getestet unter macOS 2
 
 Unterstützt werden alle Formate, die AVFoundation abspielen kann (MP4, MOV, M4V mit H.264/HEVC/ProRes …). MKV/WebM gehören nicht dazu. **AV1** wird nur auf Macs mit AV1-Hardware-Decoder (ab M3) abgespielt. Auf älteren Macs erscheint stattdessen ein Hinweis.
 
+## Installation aus einem Release
+
+1. Unter [Releases](https://github.com/j-boettcher/macos-screensaver-videos/releases) die neueste `BC-Video-*.zip` laden und entpacken.
+2. Der Bildschirmschoner ist nur ad hoc signiert und nicht notarisiert. Deshalb einmal die Quarantäne-Markierung entfernen:
+   ```bash
+   xattr -dr com.apple.quarantine "BC Video.saver"
+   ```
+3. `BC Video.saver` doppelklicken oder nach `~/Library/Screen Savers/` kopieren.
+
 ## Bauen & installieren
 
 Benötigt werden nur die Xcode Command Line Tools.
@@ -28,6 +37,18 @@ Benötigt werden nur die Xcode Command Line Tools.
 `./build.sh` ohne Argument baut nur nach `build/BC Video.saver`. Mit `install` wird das Bundle nach `~/Library/Screen Savers/` kopiert. Außerdem werden laufende `legacyScreenSaver`-Prozesse beendet, damit macOS die neue Version lädt.
 
 Danach: **Systemeinstellungen → Bildschirmschoner → „BC Video“** auswählen und über **Optionen…** Videos oder Ordner hinzufügen.
+
+## Release erstellen
+
+Releases baut GitHub Actions automatisch ([`.github/workflows/release.yml`](.github/workflows/release.yml)), sobald ein Versions-Tag gepusht wird:
+
+1. `CFBundleShortVersionString` (und `CFBundleVersion`) in `Resources/Info.plist` erhöhen und committen.
+2. Tag mit derselben Version anlegen und pushen:
+   ```bash
+   git tag v1.4 && git push origin v1.4
+   ```
+
+Der Workflow bricht ab, wenn Tag und `Info.plist` nicht übereinstimmen. Er baut das Universal Binary, packt `BC Video.saver` als ZIP (inkl. SHA-256-Prüfsumme) und erstellt den Release mit automatisch generierten Release Notes.
 
 ## Aufbau
 
