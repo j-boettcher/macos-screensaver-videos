@@ -1,4 +1,5 @@
 import AVFoundation
+import os
 import ScreenSaver
 import UniformTypeIdentifiers
 
@@ -63,6 +64,8 @@ final class Preferences {
         static let screenSources = "screenSources"
         static let screenNames = "screenNames"
         static let cacheRemoteVideos = "cacheRemoteVideos"
+        static let lastScreenRestart = "lastScreenRestart"
+        static let uncoverableScreens = "uncoverableScreens"
     }
 
     private let defaults: UserDefaults
@@ -148,9 +151,26 @@ final class Preferences {
         set { defaults.set(newValue, forKey: Key.includeSubfolders) }
     }
 
+    /// Zeitpunkt des letzten Neustarts wegen eines fehlenden Bildschirms (siehe `ScreenCoverage`).
+    var lastScreenRestart: Date? {
+        get { defaults.object(forKey: Key.lastScreenRestart) as? Date }
+        set { defaults.set(newValue, forKey: Key.lastScreenRestart) }
+    }
+
+    /// Bildschirme, auf denen macOS auch nach einem Neustart keinen Bildschirmschoner anzeigt.
+    var uncoverableScreens: [String] {
+        get { defaults.stringArray(forKey: Key.uncoverableScreens) ?? [] }
+        set { defaults.set(newValue, forKey: Key.uncoverableScreens) }
+    }
+
     func synchronize() {
         defaults.synchronize()
     }
+}
+
+extension Logger {
+    /// Meldungen erscheinen in der Konsole-App unter dem Subsystem „com.bc.VideoSaver“.
+    static let saver = Logger(subsystem: Preferences.moduleName, category: "BCVideoSaver")
 }
 
 extension NSScreen {

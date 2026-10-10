@@ -56,6 +56,7 @@ Der Workflow bricht ab, wenn Tag und `Info.plist` nicht übereinstimmen. Er baut
 |---|---|
 | `Sources/VideoSaverView.swift` | `ScreenSaverView`-Unterklasse, Wiedergabe mit `AVQueuePlayer`/`AVPlayerLooper` |
 | `Sources/ConfigureSheetController.swift` | Optionen-Fenster (in Code aufgebaut, kein XIB) |
+| `Sources/ScreenCoverage.swift` | Neustart, wenn macOS für einen Bildschirm keine Instanz anlegt |
 | `Sources/Preferences.swift` | Einstellungen (`ScreenSaverDefaults`), Quellen und Ordner-Scan |
 | `Resources/Info.plist` | Bundle-Metadaten, `NSPrincipalClass = VideoSaverView` |
 
@@ -64,12 +65,16 @@ Der Workflow bricht ab, wenn Tag und `Info.plist` nicht übereinstimmen. Er baut
 - Bildschirmschoner laufen in der Sandbox von `legacyScreenSaver`. Ausgewählte Dateien und Ordner werden als Security-Scoped-Bookmark gespeichert. Die Einstellungen liegen deshalb im Container
   `~/Library/Containers/com.apple.ScreenSaver.Engine.legacyScreenSaver/`.
 - macOS ruft `stopAnimation()` nicht mehr zuverlässig auf. Der Bildschirmschoner hört deshalb auf `com.apple.screensaver.willstop` und gibt dann die Vollbild-Wiedergabe frei. Den Prozess beendet er bewusst nicht selbst: Sonst kann auch die Vorschau in den Systemeinstellungen sterben, und „Optionen…“ bleibt gesperrt.
+- Mit mehreren Bildschirmen legt macOS gelegentlich für einen Bildschirm keine Bildschirmschoner-Instanz an. Der Bildschirm bleibt dann schwarz. Das passiert, wenn `legacyScreenSaver` beim Start erst neu gestartet werden muss. Fehlt 5 Sekunden nach dem Start ein Bildschirm, beendet sich der Prozess einmal selbst ([`ScreenCoverage.swift`](Sources/ScreenCoverage.swift)). macOS startet ihn sofort neu und legt dabei alle Bildschirme an. Bei geöffneten Systemeinstellungen passiert das nicht, weil deren Live-Vorschau nur einen Bildschirm belegt.
 - Beim erneuten Öffnen der Systemeinstellungen ruft macOS für die Vorschau oft kein `startAnimation()` auf. Die Vorschau startet deshalb selbst, sobald sie angezeigt wird, und gibt ihre Ressourcen frei, wenn sie wieder verschwindet.
 - Der Zwischenspeicher liegt im Container unter `Library/Caches/com.bc.VideoSaver/VideoCache/` (Dateiname = SHA-256 der URL). macOS darf diesen Ordner bei Platzmangel leeren; fehlende Videos werden dann automatisch neu geladen.
 - Das Vorschaubild in der Bildschirmschoner-Liste (`Resources/thumbnail*.png`) erzeugt `swift Scripts/make-thumbnail.swift`.
 - Das Optionen-Fenster wird wiederverwendet und öffnet keine weiteren Sheets darüber. Die URL wird direkt im Fenster eingegeben.
 - Für Ordner unter *Schreibtisch*, *Dokumente* oder *Downloads* kann macOS einmalig nach einer Zugriffserlaubnis fragen. Am problemlosesten ist z. B. `~/Movies`.
-- Debug-Ausgaben: In der *Konsole*-App nach `BCVideoSaver` filtern.
+- Debug-Ausgaben: In der *Konsole*-App nach dem Subsystem `com.bc.VideoSaver` filtern, oder im Terminal:
+  ```bash
+  log show --last 1h --predicate 'subsystem == "com.bc.VideoSaver"'
+  ```
 
 ## Deinstallieren
 

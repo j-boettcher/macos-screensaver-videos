@@ -1,5 +1,6 @@
 import CryptoKit
 import Foundation
+import os
 import UniformTypeIdentifiers
 
 /// Lädt Videos von URLs herunter und spielt danach die lokale Kopie ab.
@@ -123,7 +124,7 @@ final class VideoCache: NSObject {
                 self.progressObservers[url] = nil
                 if let failure {
                     self.failures[url] = failure
-                    NSLog("BCVideoSaver: Download fehlgeschlagen (\(url.absoluteString)): \(failure)")
+                    Logger.saver.error("Download fehlgeschlagen (\(url.absoluteString, privacy: .public)): \(failure, privacy: .public)")
                 }
                 self.notify(url)
             }
@@ -155,7 +156,7 @@ final class VideoCache: NSObject {
         if let url = urlsByKey[key] {
             failures[url] = "Gespeicherte Datei ließ sich nicht abspielen"
         }
-        NSLog("BCVideoSaver: Defekte Datei aus dem Zwischenspeicher entfernt: \(file.lastPathComponent)")
+        Logger.saver.notice("Defekte Datei aus dem Zwischenspeicher entfernt: \(file.lastPathComponent, privacy: .public)")
         notify(nil)
     }
 

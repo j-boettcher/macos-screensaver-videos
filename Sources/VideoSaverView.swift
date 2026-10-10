@@ -1,4 +1,5 @@
 import AVFoundation
+import os
 import ScreenSaver
 
 @objc(VideoSaverView)
@@ -65,6 +66,9 @@ final class VideoSaverView: ScreenSaverView {
 
     override func startAnimation() {
         super.startAnimation()
+        if !isPreviewInstance {
+            ScreenCoverage.didStart(self)
+        }
         if player == nil {
             setUpPlayback()
         }
@@ -308,7 +312,7 @@ final class VideoSaverView: ScreenSaverView {
         // Meldungen aus einer früheren Wiedergabe ignorieren, jedes Video nur einmal zählen.
         guard let player, generation == self.generation,
               failedItems.insert(ObjectIdentifier(item)).inserted else { return }
-        NSLog("BCVideoSaver: Video konnte nicht abgespielt werden (\((item.asset as? AVURLAsset)?.url.absoluteString ?? "?")): \(error?.localizedDescription ?? "unbekannter Fehler")")
+        Logger.saver.error("Video konnte nicht abgespielt werden (\((item.asset as? AVURLAsset)?.url.absoluteString ?? "?", privacy: .public)): \(error?.localizedDescription ?? "unbekannter Fehler", privacy: .public)")
         statusObservers[ObjectIdentifier(item)] = nil
         VideoCache.shared.invalidate((item.asset as? AVURLAsset)?.url)
         consecutiveFailures += 1
@@ -327,7 +331,7 @@ final class VideoSaverView: ScreenSaverView {
     private func playbackFailed(_ error: Error?, url: URL? = nil) {
         guard player != nil else { return }
         VideoCache.shared.invalidate(url)
-        NSLog("BCVideoSaver: Wiedergabe abgebrochen: \(error?.localizedDescription ?? "unbekannter Fehler")")
+        Logger.saver.error("Wiedergabe abgebrochen: \(error?.localizedDescription ?? "unbekannter Fehler", privacy: .public)")
         tearDownPlayback()
         var text = "Die ausgewählten Videos konnten nicht abgespielt werden."
         if let error = error as NSError? {
@@ -393,6 +397,7 @@ final class VideoSaverView: ScreenSaverView {
         guard !isPreviewInstance else { return }
         // Vollbild-Instanz freigeben, sie wird von macOS oft nicht mehr beendet.
         // Bei erneutem Start baut startAnimation() die Wiedergabe neu auf.
+        ScreenCoverage.didStop(self)
         tearDownPlayback()
     }
 }
